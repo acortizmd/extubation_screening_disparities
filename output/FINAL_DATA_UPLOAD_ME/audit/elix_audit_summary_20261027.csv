@@ -1,0 +1,21 @@
+version,level,metric,n,denominator,pct
+poa,cohort_hosp,cohort_hospitalizations,44467,44467,100
+poa,cohort_hosp,dx_from_index_hospitalization,44464,44467,99.99
+poa,cohort_hosp,dx_from_prior_hospitalizations_only,0,44467,0
+poa,cohort_hosp,no_dx_data (imputed),3,44467,0.01
+poa,cohort_hosp,imputed_with_age_sex_median,3,44467,0.01
+poa,cohort_hosp,imputed_with_age_median,0,44467,0
+poa,cohort_hosp,imputed_with_overall_median,0,44467,0
+poa,cohort_hosp,solid_tumor_removed_by_metastatic_hierarchy,1918,44467,4.31
+poa,run,imv_runs_total,50088,50088,100
+poa,run,imv_runs_score_imputed,3,50088,0.01
+all,cohort_hosp,cohort_hospitalizations,44467,44467,100
+all,cohort_hosp,dx_from_index_hospitalization,44464,44467,99.99
+all,cohort_hosp,dx_from_prior_hospitalizations_only,0,44467,0
+all,cohort_hosp,no_dx_data (imputed),3,44467,0.01
+all,cohort_hosp,imputed_with_age_sex_median,3,44467,0.01
+all,cohort_hosp,imputed_with_age_median,0,44467,0
+all,cohort_hosp,imputed_with_overall_median,0,44467,0
+all,cohort_hosp,solid_tumor_removed_by_metastatic_hierarchy,1924,44467,4.33
+all,run,imv_runs_total,50088,50088,100
+all,run,imv_runs_score_imputed,3,50088,0.01

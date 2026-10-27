@@ -1,0 +1,6 @@
+trach_evidence,all_encounters,ever_ventilated,in_cohort_post_rules
+"code only, no time-stamped record",1389,489,0
+no trach evidence,2420110,42943,40260
+"single record, no code (artifact, not a trach)",3114,1377,1280
+timed: 1 record confirmed by code,259,135,39
+timed: 2+ time-stamped records,10902,5255,3349

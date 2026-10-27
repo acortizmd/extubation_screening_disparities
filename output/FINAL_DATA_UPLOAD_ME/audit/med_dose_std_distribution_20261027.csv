@@ -1,0 +1,16 @@
+med,unit,1%,25%,50%,75%,99%,100%
+cisatracurium,mcg/kg/min,0.5,2,3,5,10,168.821
+dexmedetomidine,mcg/kg/hr,0.1,0.4,0.7,1.1,1.5,1000
+dobutamine,mcg/kg/min,2,2.5,5,5,10,500
+dopamine,mcg/kg/min,1,3,5,9,20,459.31
+epinephrine,mcg/kg/min,0.007,0.024,0.042,0.071,0.294,10
+fentanyl,mcg/hr,12.5,50,100,150,400,27749.688
+hydromorphone,mg/hr,0.2,2,4,6,12,400
+ketamine,mg/kg/hr,0.1,0.3,0.5,1,9,12
+midazolam,mg/hr,0.5,2,5,8,95,1500
+norepinephrine,mcg/kg/min,0.008,0.035,0.068,0.133,0.806,60
+phenylephrine,mcg/kg/min,0.102,0.433,0.836,1.592,6.188,197.217
+propofol,mcg/kg/min,5,20,30,45,80,50000
+rocuronium,mcg/kg/min,2.5,5.5,8,11,14,21.667
+vasopressin,units/min,0.01,0.03,0.04,0.04,0.06,222122
+vecuronium,mcg/kg/min,0.2,0.8,1,1.4,2.3,63.291

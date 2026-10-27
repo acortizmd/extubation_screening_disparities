@@ -1,0 +1,11 @@
+step,runs,hospitalizations,runs_removed
+0 merged,84310,47531,
+1 run end capped at trach time (no runs removed),84310,47531,0
+2 excl. trach before run start,52699,46583,31611
+3 excl. trach within 6 months before admission,51837,45787,862
+4 excl. trach within 72 h of IMV start,51074,45253,763
+"5a excl. ventilated at discharge to post-acute facility, no trach documented",50930,45146,144
+5b excl. trach diagnosis without time-stamped documentation,50661,44928,269
+6 start of run cleanup,50661,44928,0
+7 overlapping runs merged,50657,44928,4
+8 runs >= 1 h (final cohort),50088,44467,569

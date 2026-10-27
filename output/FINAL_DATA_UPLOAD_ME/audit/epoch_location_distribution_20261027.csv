@@ -1,0 +1,17 @@
+epoch_location,N,pct
+mixed_cardiothoracic_icu,1191401,27.86
+medical_icu,1049779,24.55
+mixed_neuro_icu,682799,15.97
+general_icu,550314,12.87
+surgical_icu,357884,8.37
+trauma_icu,271811,6.36
+cardiac_icu,115831,2.71
+procedural,36649,0.86
+ed,19197,0.45
+ward,384,0.01
+,224,0.01
+stepdown,170,0
+radiology,24,0
+other,21,0
+l&d,3,0
+dialysis,2,0

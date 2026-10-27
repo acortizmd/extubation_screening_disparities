@@ -1,0 +1,6 @@
+med_category,n_courses,total_doses,pct_single_dose,median_interval_h,p90_interval_h,pct_imv_epochs_active
+dexamethasone,5904,69495,19.6,12.1,24,6.22
+hydrocortisone,14543,110223,31.1,6,8.86666666666667,12.08
+methylprednisolone,9055,67230,27.9,23.5416666666667,24.0223333333333,10.7
+prednisolone,73,455,30.1,24,24.2566666666667,0.03
+prednisone,8300,84793,13.7,23.925,24.2666666666667,5.93

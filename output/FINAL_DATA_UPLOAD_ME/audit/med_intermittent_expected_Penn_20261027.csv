@@ -1,0 +1,23 @@
+med_group,role,med_category,status,records,hospitalizations,groups_used,units,routes,pct_unit_missing,institution
+paralytics,paralytic bolus feature / NMBA action,cisatracurium,"present, multiple units",14874,4653,paralytic,mcg/kg/min; mcg/min; mg,iv,0,Penn
+steroids,steroid dose feature (hydrocortisone-equivalent),dexamethasone,"present, multiple units",545739,90369,steroid,mg; mg/kg,enteral; im; iv; other,0,Penn
+rsi,RSI / intubation timing,etomidate,present,8344,6390,sedation,mg,iv; other,0,Penn
+analgesia,opioid boluses,fentanyl,"present, multiple units",757896,194895,sedation,mcg; mcg/hr; mcg/kg/hr; ml; ml/hr; patch,enteral; im; iv; other,0,Penn
+steroids,steroid dose feature (hydrocortisone-equivalent),hydrocortisone,present,220738,22894,steroid,mg,enteral; im; iv,0,Penn
+analgesia,opioid boluses,hydromorphone,"present, multiple units",2545462,261327,sedation,mg; mg/hr,enteral; im; iv,0,Penn
+rsi,RSI / intubation timing,ketamine,"present, multiple units",65781,8723,sedation,mg; ml,enteral; im; iv; other,0,Penn
+sedation,sedation boluses,ketamine,"present, multiple units",65781,8723,sedation,mg; ml,enteral; im; iv; other,0,Penn
+sedation,sedation boluses,lorazepam,present,715301,157256,sedation,mg,buccal_sublingual; enteral; im; iv; other,0,Penn
+steroids,steroid dose feature (hydrocortisone-equivalent),methylprednisolone,"present, multiple units",333406,79350,steroid,g; mg,enteral; im; iv,0,Penn
+rsi,RSI / intubation timing,midazolam,"present, multiple units",305971,87175,sedation,mg; mg/hr; ml,im; iv; other,0,Penn
+sedation,sedation boluses,midazolam,"present, multiple units",305971,87175,sedation,mg; mg/hr; ml,im; iv; other,0,Penn
+analgesia,opioid boluses,morphine,present,853492,214822,sedation,mg,buccal_sublingual; enteral; im; iv; other,0,Penn
+steroids,steroid dose feature (hydrocortisone-equivalent),prednisolone,present,3038,697,steroid,mg,enteral,0,Penn
+steroids,steroid dose feature (hydrocortisone-equivalent),prednisone,present,545799,132596,steroid,mg,enteral,0,Penn
+rsi,RSI / intubation timing,propofol,"present, multiple units",8457,4684,sedation,mcg; mcg/kg/min; mcg/min; mg,iv,0.1,Penn
+sedation,sedation boluses,propofol,"present, multiple units",8457,4684,sedation,mcg; mcg/kg/min; mcg/min; mg,iv,0.1,Penn
+rsi,RSI / intubation timing,rocuronium,present,8605,6018,paralytic,mg,iv; other,0,Penn
+paralytics,paralytic bolus feature / NMBA action,rocuronium,present,8605,6018,paralytic,mg,iv; other,0,Penn
+rsi,RSI / intubation timing,succinylcholine,present,3613,3189,paralytic,mg,im; iv; other,0.1,Penn
+rsi,RSI / intubation timing,vecuronium,present,4222,1873,paralytic,mg,iv,0,Penn
+paralytics,paralytic bolus feature / NMBA action,vecuronium,present,4222,1873,paralytic,mg,iv,0,Penn

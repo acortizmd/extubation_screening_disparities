@@ -1,0 +1,5 @@
+group,n_positive_tests,n_patients,pct_runs_pre_imv,pct_runs_known_at_imv,pct_imv_epochs_active
+influenza,,,0,0,0
+other_resp,,,0,0,0
+rsv,15627,12097,2.25,0.95,3
+sars_cov2,576864,293067,31.49,23.23,37.65

@@ -1,0 +1,20 @@
+step,stage,runs,patients,language,site
+cohort,eligible IMV runs,50088,41381,all,Penn
+cohort,valid start and end times,50088,41381,all,Penn
+cohort,intubated 2018 or later,47279,39144,all,Penn
+cohort,known language preference,46563,38530,all,Penn
+1. Intubation -> first SBT screen,reached the step's starting point,46563,38530,all,Penn
+1. Intubation -> first SBT screen,analyzed (known sex),46562,38529,all,Penn
+2. Readiness -> first SBT,reached the step's starting point,39238,32634,all,Penn
+2. Readiness -> first SBT,analyzed (known sex),39237,32633,all,Penn
+3. Passed SBT -> extubation,reached the step's starting point,31607,26743,all,Penn
+3. Passed SBT -> extubation,analyzed (known sex),31607,26743,all,Penn
+1. Intubation -> first SBT screen,"analyzed, by language",44695,36997,english,Penn
+1. Intubation -> first SBT screen,"analyzed, by language",1205,981,other_non_english,Penn
+1. Intubation -> first SBT screen,"analyzed, by language",662,551,spanish,Penn
+2. Readiness -> first SBT,"analyzed, by language",37653,31333,english,Penn
+2. Readiness -> first SBT,"analyzed, by language",1036,844,other_non_english,Penn
+2. Readiness -> first SBT,"analyzed, by language",548,456,spanish,Penn
+3. Passed SBT -> extubation,"analyzed, by language",30334,25685,english,Penn
+3. Passed SBT -> extubation,"analyzed, by language",849,704,other_non_english,Penn
+3. Passed SBT -> extubation,"analyzed, by language",424,354,spanish,Penn

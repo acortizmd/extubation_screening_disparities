@@ -1,0 +1,7 @@
+med_group,med_category,records,hospitalizations,units,n_units,institution
+sedation,fentanyl,2337356,28664,mcg; mcg/hr; mcg/kg/hr; mcg/min,4,Penn
+sedation,hydromorphone,495033,4208,mg; mg/day; mg/hr,3,Penn
+sedation,remifentanil,2949,808,mcg; mcg/kg/min; mg,3,Penn
+vasoactives,isoproterenol,15680,1982,mcg; mcg/kg/min; mcg/min,3,Penn
+sedation,morphine,47139,4460,mg; mg/hr,2,Penn
+sedation,pentobarbital,1504,35,mcg/kg/hr; mg; mg/kg/hr,3,Penn

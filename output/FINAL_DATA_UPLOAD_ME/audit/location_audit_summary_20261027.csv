@@ -1,0 +1,17 @@
+metric,n,pct
+adt_rows,3834635,
+adt_rows_missing_out_dttm (open until next row),1,
+adt_rows_out_before_in (dropped),0,
+runs_match_within_interval,49601,99.03
+runs_match_unmatched,30,0.06
+runs_match_nearest_within_tolerance,457,0.91
+runs_confidence_direct,20628,41.18
+runs_confidence_inferred_from_prior_location,20131,40.19
+runs_confidence_ambiguous_first_adt_row,6638,13.25
+runs_confidence_ambiguous_recent_arrival,2204,4.4
+runs_confidence_unmatched,30,0.06
+runs_confidence_nearest_row_not_contained,457,0.91
+runs_with_overlapping_adt_rows,5,0.01
+runs_reassigned_to_prior_location,20131,40.19
+runs_intubated_in_procedural (adjusted),22053,44.03
+runs_site_uncertain,9329,18.63

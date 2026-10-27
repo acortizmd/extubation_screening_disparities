@@ -1,0 +1,6 @@
+intermediate_data_DO_NOT_UPLOAD/
+config/extubation_screening_config.yaml
+.Rhistory
+.RData
+.Rproj.user/
+*.html
