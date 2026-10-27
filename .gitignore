@@ -4,3 +4,4 @@ config/extubation_screening_config.yaml
 .RData
 .Rproj.user/
 *.html
+output/

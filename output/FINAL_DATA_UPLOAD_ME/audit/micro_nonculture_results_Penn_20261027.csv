@@ -1,9 +1,0 @@
-feature,result_category,records,institution
-viral_rsv_active,not_detected,148506,Penn
-viral_rsv_active,detected,15630,Penn
-viral_rsv_active,indeterminant,436,Penn
-viral_rsv_active,,227,Penn
-viral_sars_cov2_active,detected,576917,Penn
-viral_sars_cov2_active,not_detected,1274,Penn
-viral_sars_cov2_active,indeterminant,295,Penn
-viral_sars_cov2_active,,78,Penn

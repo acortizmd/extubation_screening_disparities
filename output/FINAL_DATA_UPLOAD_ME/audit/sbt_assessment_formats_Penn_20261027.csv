@@ -1,7 +1,0 @@
-assessment_category,source,raw_value,binary_value,records,hospitalizations,institution
-sbt_delivery_pass_fail,categorical_value,no,0,261407,27097,Penn
-sbt_delivery_pass_fail,categorical_value,yes,1,97040,34476,Penn
-sbt_delivery_pass_fail,neither,,,5766,3820,Penn
-sbt_screen_pass_fail,categorical_value,pass,1,33786,24436,Penn
-sbt_screen_pass_fail,categorical_value,fail,0,15348,8943,Penn
-sbt_screen_pass_fail,neither,,,755,713,Penn
