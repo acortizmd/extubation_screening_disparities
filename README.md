@@ -259,13 +259,13 @@ time_zone: "America/New_York"   # Your site's local timezone
 - `institution`: Your site name, used for labeling output files
 - `time_zone`: Your site's local timezone
 
-### 2. Run `code/00_cohort_id.Rmd` in RStudio
+### 2. Run `code/00_cohort_id_102326.Rmd` in RStudio
 
 > **Note:** 256GB of RAM is recommended for sites with larger databases; 128GB may be sufficient for smaller databases.
 
 ### 3. Upload results to Box
 
-Upload the contents of `FINAL_DATA_UPLOAD_ME` to the shared Box folder: [link]
+Upload the contents of `FINAL_DATA_UPLOAD_ME` to the shared Box folder: https://app.box.com/folder/431950045957
 
 ## Questions
 

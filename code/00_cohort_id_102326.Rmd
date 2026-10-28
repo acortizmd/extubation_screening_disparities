@@ -101,35 +101,61 @@ for (dir in dirs_to_create) {
   }
 }
 
-#Cache for the baseline table built in parts 2-4 - if already completed previously then this will help to skip it
+# ---- Cache settings -------------------------------------------------------------------------------
+force_rebuild       <- FALSE   # TRUE = rebuild everything (baseline + epoch table)
+force_rebuild_epoch <- FALSE   # TRUE = keep the baseline cache, rebuild Parts 5-8 only
 
-#Define baseline_cache
-baseline_cache <- file.path(intermediate_dir, "baseline_data_eligible_imv_runs.parquet") #location of data
-#Baseline_meta contains time cache was saved, which settings were used, etc
-baseline_meta  <- file.path(intermediate_dir, "baseline_data_eligible_imv_runs_meta.rds") 
-#Manual switch to force rebuild - should stay FALSE once pipeline is complete
-force_rebuild  <- TRUE                                         
+baseline_cache <- file.path(intermediate_dir, "baseline_data_eligible_imv_runs.parquet")
+baseline_meta  <- file.path(intermediate_dir, "baseline_data_eligible_imv_runs_meta.rds")
+epoch_cache    <- file.path(intermediate_dir, "epoch_table.parquet")
+epoch_meta     <- file.path(intermediate_dir, "epoch_table_meta.rds")
 
-# Cohort-defining parameters live HERE so a change is detected and triggers a rebuild
-# This is the minimum number of hours an imv_run must have to be in the cohort
+# Parameters that define each cached table: a change to any of them triggers a rebuild of that layer
 cohort_params <- list(min_run_hours = 1)
+# First Define Parameters for our hourly table
+epoch_hours    <- 1                   # epoch length - can change on future iterations
+lookback_hours <- 24                  # pre-intubation epochs to include (negative epoch numbers); 0 = none
+max_hours      <- Inf                 # cap on epochs after begin_obs - will use all epochs until extubated, death, starting paralytics; Inf = through end_obs
+loc_locf_hours <- 2   #carry the last location/hospital across small ADT gaps (hours); longer gaps stay NA
+# Define the Parameters needed for part 8!
+pf_locf_hours     <- 12     # carry a P/F ratio forward this long after the ABG it came from
+sf_locf_hours     <- 4      # carry an S/F ratio forward this long after the SpO2 it came from
+epoch_params <- list(epoch_hours = epoch_hours, lookback_hours = lookback_hours, max_hours = max_hours,
+                     loc_locf_hours = loc_locf_hours, pf_locf_hours = pf_locf_hours, sf_locf_hours = sf_locf_hours)
 
-#Function to determine whether or not to use the saved cache data
-use_baseline_cache <- !force_rebuild && file.exists(baseline_cache) && file.exists(baseline_meta) #continue only if force_rebuild is FALSE and the two files exist
-if (use_baseline_cache) {
-  meta <- readRDS(baseline_meta) #Read the meta file
-  input_files  <- list.files(data_dir, full.names = TRUE) #get list of all of the CLIF tables in the directory
-  newer_inputs <- input_files[file.mtime(input_files) > meta$saved_at] #check the time the CLIF tables were saved
-  if (length(newer_inputs)) {
-    message("Cache is older than: ", paste(basename(newer_inputs), collapse = ", "), " -> rebuilding")
-    use_baseline_cache <- FALSE #If one of the CLIF files has been rebuilt after cache saved then rebuild pipeline
-  } else if (!identical(meta$params, cohort_params)) {
-    message("Cohort parameters changed since the cache was saved -> rebuilding")
-    use_baseline_cache <- FALSE #Verify that cohort_params above is consistent with meta file
-  }
+
+# Shared check: files exist, CLIF inputs not newer than the cache, parameters unchanged
+cache_ok <- function(cache_file, meta_file, params, label) {
+  if (!file.exists(cache_file) || !file.exists(meta_file)) return(FALSE)
+  meta <- readRDS(meta_file)
+  newer <- list.files(data_dir, full.names = TRUE)
+  newer <- newer[file.mtime(newer) > meta$saved_at]
+  if (length(newer)) { message(label, " cache is older than: ", paste(basename(newer), collapse = ", "), " -> rebuilding"); return(FALSE) }
+  if (!identical(meta$params, params)) { message(label, " parameters changed -> rebuilding"); return(FALSE) }
+  TRUE
 }
-message(if (use_baseline_cache) ">>> USING CACHED baseline table: Parts 2-4 will be skipped✅ "
-        else ">>> ⚠️ Building baseline table from scratch")
+
+use_baseline_cache <- !force_rebuild && cache_ok(baseline_cache, baseline_meta, cohort_params, "Baseline")
+use_epoch_cache    <- use_baseline_cache && !force_rebuild_epoch &&
+                      cache_ok(epoch_cache, epoch_meta, epoch_params, "Epoch table") &&
+                      readRDS(epoch_meta)$saved_at > readRDS(baseline_meta)$saved_at   # built from the current baseline
+
+message(if (use_epoch_cache)         ">>> USING CACHED epoch_table: Parts 2-8 will be skipped ✅"
+        else if (use_baseline_cache) ">>> USING CACHED baseline table: Parts 2-4 skipped, Parts 5-8 will run ✅"
+        else                         ">>> ⚠️ Building baseline and epoch table from scratch")
+
+# Load the cached tables now if skipping ahead
+restore_tz <- function(dt) {   # parquet stores times in UTC; put them back in the site's time zone
+  for (cc in names(dt)[sapply(dt, inherits, "POSIXct")]) set(dt, j = cc, value = lubridate::with_tz(dt[[cc]], time_zone))
+  dt
+}
+if (use_epoch_cache) {
+  baseline_data_eligible_imv_runs <- restore_tz(as.data.table(arrow::read_parquet(baseline_cache)))
+  epoch_table                     <- restore_tz(as.data.table(arrow::read_parquet(epoch_cache)))
+  setorder(epoch_table, imv_run_id, epoch)
+  message("Loaded epoch_table: ", format(nrow(epoch_table), big.mark = ","), " rows, ",
+          uniqueN(epoch_table$imv_run_id), " runs")
+}
 ```
 
  
@@ -2430,6 +2456,7 @@ saveRDS(list(saved_at = Sys.time(),
   # Convert meds for future SOFA score calculation
   # Process RASS score values
 ```{r}
+if (!use_epoch_cache) {
 if (use_baseline_cache) {
   baseline_data_eligible_imv_runs <- as.data.table(arrow::read_parquet(baseline_cache))
   # Reset timezone labels (the instants are unchanged; this only fixes how they display)
@@ -2531,7 +2558,7 @@ meds[, c("med_key", "conv_factor", "conv_kg", "convertible", "unit_std", "wt_kg"
 fwrite(audit_med_conversion, file.path(audit_dir, paste0("med_unit_conversion_", stamp, ".csv")))
 fwrite(audit_med_dose_dist,  file.path(audit_dir, paste0("med_dose_std_distribution_", stamp, ".csv")))
 
-
+}
 ```
 
 
@@ -2539,6 +2566,7 @@ fwrite(audit_med_dose_dist,  file.path(audit_dir, paste0("med_dose_std_distribut
   # Create hour-based epoch table for each hospitalization_id
   # Identify values of key labs, vital signs, vent settings, meds
 ```{r}
+if (!use_epoch_cache) {
 ###############################################################################
 # HOURLY EPOCH TABLE: one row per IMV run x epoch
 # Epoch 0 = [begin_obs, begin_obs + 1h); negative epochs = pre-intubation lookback
@@ -2882,6 +2910,7 @@ c(runs = uniqueN(epoch_table$imv_run_id), epochs = nrow(epoch_table),
 
 fwrite(audit_features,  file.path(audit_dir, paste0("epoch_audit_features_",  stamp, ".csv")))
 fwrite(audit_med_units, file.path(audit_dir, paste0("epoch_audit_med_units_", stamp, ".csv")))
+}
 ```
 
 #PART SEVEN: Further processing of hourly table
@@ -2890,6 +2919,7 @@ fwrite(audit_med_units, file.path(audit_dir, paste0("epoch_audit_med_units_", st
   # Respiratory viral results
   # Location
 ```{r} 
+if (!use_epoch_cache) {
 ################################################################################
 # ANTIBIOTIC COVERAGE + SPECTRUM SCORE PER EPOCH
 # Run after the EPOCH TABLE block (uses epoch_table, epoch_s, lookback_epochs, cohort_hids)
@@ -3407,6 +3437,7 @@ print(loc_chk[, .N, by = .(location_of_intubation, epoch_location_category)][ord
  # save the audit files
 fwrite(loc_epoch_dist,  file.path(audit_dir, paste0("epoch_location_distribution_", stamp, ".csv")))
 fwrite(hosp_epoch_dist, file.path(audit_dir, paste0("epoch_hospital_distribution_", stamp, ".csv")))
+}
 ```
      
 # PART EIGHT: Add in baseline characteristics and Calculate scores per row
@@ -3418,6 +3449,7 @@ fwrite(hosp_epoch_dist, file.path(audit_dir, paste0("epoch_hospital_distribution
   # SOFA Score
   # Number of vasopressors
 ```{r}
+if (!use_epoch_cache) {
 ################################################################################
 # DERIVED FEATURES (row-wise on every epoch)
 # Run LAST: needs epoch_table with the abx_, location, viral, steroid columns, and the baseline table.
@@ -3627,10 +3659,25 @@ print(col_inventory, nrows = Inf)
 
 fwrite(col_inventory, file.path(audit_dir, paste0("epoch_table_columns_", stamp, ".csv")))
 
+# ---- Save the epoch table cache (Parts 5-8 output) -------------------------------------------------
+if (!use_epoch_cache) {
+  arrow::write_parquet(epoch_table, epoch_cache)
+  saveRDS(list(saved_at = Sys.time(), params = epoch_params,
+               n_rows = nrow(epoch_table), n_runs = uniqueN(epoch_table$imv_run_id)), epoch_meta)
+  message("Saved epoch_table cache: ", epoch_cache)
+}
+}
 ```
 
 #PART NINE: Vent Liberation Steps
 ```{r}
+if (use_epoch_cache) {
+  baseline_data_eligible_imv_runs <- restore_tz(as.data.table(arrow::read_parquet(baseline_cache)))
+  stopifnot(nrow(baseline_data_eligible_imv_runs) == readRDS(baseline_meta)$n_rows)
+  epoch_table <- restore_tz(as.data.table(arrow::read_parquet(epoch_cache)))
+  stopifnot(nrow(epoch_table) == readRDS(epoch_meta)$n_rows)
+  setorder(epoch_table, imv_run_id, epoch)
+}
 ################################################################################
 # LIBERATION PROCESS: THREE TIME-TO-EVENT STEPS BY LANGUAGE PREFERENCE
 #   Step 1:  intubation              -> first documented SBT screen
@@ -3746,7 +3793,7 @@ runs <- runs[year >= start_year];             add_flow(paste0("intubated ", star
 n_lang_missing <- runs[is.na(lang2), .N] #number of runs dropped for missing language
 runs <- runs[!is.na(lang2)];                  add_flow("known language preference", runs) #remove runs with missing language
 
-#2) Determin Event times
+#2) Determine Event times
 pa <- patient_assessments[assessment_category %in% c("sbt_screen_pass_fail", "sbt_delivery_pass_fail") &
                           !is.na(recorded_dttm) & !is.na(binary_value),
                           .(hospitalization_id = as.character(hospitalization_id), t = recorded_dttm,
@@ -3775,6 +3822,280 @@ sbt_after <- pa[cat == "sbt_delivery_pass_fail"][first_ready, on = .(imv_run_id,
 for (x in list(first_screen, first_pass, first_ready, sbt_after))
   runs[x, on = "imv_run_id", (setdiff(names(x), "imv_run_id")) := mget(paste0("i.", setdiff(names(x), "imv_run_id")))] #add all of the times for steps 1-3 onto the individual runs
 runs[end_reason == "extubation", t_extub := t_end] #if t_extub=t_end give the end_reason as extubation
+
+################################################################################
+# VENTILATOR-MODE SBT DETECTION + FLOWSHEET SBT FIX  (module for liberation_steps_v2.R)
+#
+# WHERE: paste this whole block into liberation_steps_v2.R right AFTER Section 2
+#        (after `runs[end_reason == "extubation", t_extub := t_end]`) and BEFORE Section 3.
+# NEEDS: runs, first_ready, patient_assessments, data_dir, file_type, read_data,
+#        project_data_dir, institution, min_cell, time_zone (all already defined upstream).
+#
+# What it does
+#   A. Flowsheet SBT delivery, widened: sbt_delivery_pass_fail (any value) OR sbt_delivery_performed = yes.
+#      (Fixes UMN, where SBTs are charted mainly as "performed".)
+#   B. Ventilator-mode SBT ("FLIP", after ABT-RISE 04_sbt_both.py), in continuous time:
+#        an SBT row = IMV with pressure support/CPAP mode, PS <= 8 and PEEP <= 8, OR a T-piece trial.
+#        - delivered SBT (step 2): first SBT-level row after readiness whose settings persist >= flip_min
+#        - completed SBT (step 3 proxy): first SBT episode lasting >= pass_min (time stamp = start + pass_min)
+#   C. Chooses which SBT times feed steps 2 and 3 (sbt_source), keeping all versions on `runs`.
+#   D. Writes aggregate, small-cell-masked audit files: concordance, documentation before extubation,
+#      ventilator mode inventory and SBT episode durations.
+################################################################################
+
+# ---- V0. Parameters ---------------------------------------------------------------------------------
+sbt_source         <- "flowsheet"  # SBT times used for steps 2 and 3: "flowsheet", "ventilator", or "either" (earliest)
+flip_ps_max        <- 8            # pressure support (cmH2O) at or below this counts as SBT-level support
+flip_peep_max      <- 8            # PEEP at or below this
+flip_min           <- 2            # minutes SBT settings must persist to count as delivered (ABT-RISE primary 2; secondary 5)
+pass_min           <- 30           # minutes of uninterrupted SBT settings treated as a completed (passed) trial
+require_transition <- FALSE        # TRUE: the SBT episode must START after readiness (a true flip from a control mode).
+                                   # FALSE (ABT-RISE behaviour): any SBT-level row after readiness counts, so a patient
+                                   # already resting on PS 5/5 when ready counts as delivered at the first row after it.
+blowby_is_tpiece   <- TRUE         # mode_category "blow by" during an IMV run counted as a T-piece trial
+settings_carry_h   <- 4            # mode, PS and PEEP carried forward (within run, and within the same mode) at most this long
+doc_window_h       <- 24           # look-back before extubation for the documentation check
+stopifnot(sbt_source %in% c("flowsheet", "ventilator", "either"))
+
+# ---- V1. Flowsheet SBT delivery (widened) -------------------------------------------------------------
+pd <- patient_assessments[assessment_category %in% c("sbt_delivery_pass_fail", "sbt_delivery_performed") &
+                          !is.na(recorded_dttm) & !is.na(binary_value),
+                          .(hospitalization_id = as.character(hospitalization_id), t = recorded_dttm,
+                            cat = assessment_category, val = as.integer(binary_value))]
+pd <- pd[cat == "sbt_delivery_pass_fail" | val == 1L]          # a pass/fail result implies a trial happened
+pd <- pd[runs[, .(imv_run_id, hospitalization_id, t_int, t_end)],
+         on = .(hospitalization_id, t >= t_int, t <= t_end), nomatch = 0L,
+         .(imv_run_id, t = x.t, cat, pass = cat == "sbt_delivery_pass_fail" & val == 1L)]
+sbt_doc <- pd[first_ready, on = .(imv_run_id, t >= t_ready), nomatch = 0L,
+              .(imv_run_id, t = x.t)][, .(t_sbt_doc = min(t)), by = imv_run_id]
+
+# ---- V2. Respiratory support rows inside each IMV run ----------------------------------------------------
+# V2-V3 run inside tryCatch: if anything in the ventilator part fails, the flowsheet results still come out
+# (ventilator columns are empty, the audit files say so, and steps 2-3 fall back to the flowsheet).
+t0_empty  <- as.POSIXct(character(0), tz = time_zone)
+id_empty  <- runs$imv_run_id[0]
+sbt_vent  <- data.table(imv_run_id = id_empty, t_sbt_vent = t0_empty)
+pass_vent <- data.table(imv_run_id = id_empty, t_pass_vent = t0_empty)
+eps       <- data.table(imv_run_id = id_empty, t_start = t0_empty, dur_min = numeric(0))
+rs        <- data.table(imv_run_id = id_empty, modec = character(0), ps = numeric(0), pe = numeric(0), mcode = integer(0))
+chart_int <- data.table(level = character(0), value = numeric(0))
+name_terms <- data.table(level = character(0), rows = integer(0), runs = integer(0))
+vent_status <- "ok"
+vent_ok <- tryCatch({
+rs_cols <-c("hospitalization_id", "recorded_dttm", "device_category", "mode_category", "mode_name",
+             "pressure_support_set", "peep_set")
+if (exists("respiratory_support") && all(rs_cols[1:4] %in% names(respiratory_support))) {
+  rs <- as.data.table(respiratory_support)[, intersect(rs_cols, names(respiratory_support)), with = FALSE]
+} else {
+  rs <- as.data.table(read_data(paste0(data_dir, "clif_respiratory_support", file_type), select = rs_cols))
+}
+for (cc in setdiff(rs_cols, names(rs))) set(rs, j = cc, value = NA)
+rs[, hospitalization_id := as.character(hospitalization_id)]
+rs <- rs[hospitalization_id %in% runs$hospitalization_id & !is.na(recorded_dttm),
+         .(hospitalization_id, t = recorded_dttm,
+           device = tolower(trimws(as.character(device_category))),
+           modec  = tolower(trimws(as.character(mode_category))),
+           moden  = tolower(trimws(as.character(mode_name))),
+           ps     = suppressWarnings(as.numeric(pressure_support_set)),
+           pe     = suppressWarnings(as.numeric(peep_set)))]
+rs <- rs[runs[, .(imv_run_id, hospitalization_id, t_int, t_end)],
+         on = .(hospitalization_id, t >= t_int, t <= t_end), nomatch = 0L,
+         .(imv_run_id, t = x.t, device, modec, moden, ps, pe)]
+setorder(rs, imv_run_id, t)
+
+# One row per run x time stamp (settings are often charted on separate rows at the same time)
+first_nn <- function(x) { y <- x[!is.na(x)]; if (length(y)) y[1L] else x[1L] }
+rs[, dup := .N > 1L, by = .(imv_run_id, t)]
+if (any(rs$dup)) {
+  one <- rs[dup == TRUE, lapply(.SD, first_nn), by = .(imv_run_id, t), .SDcols = c("device", "modec", "moden", "ps", "pe")]
+  rs  <- rbind(rs[dup == FALSE], one, fill = TRUE)
+  setorder(rs, imv_run_id, t)
+}
+rs[, dup := NULL]
+
+# Charting audit: minutes between consecutive respiratory_support time stamps within a run
+gaps <- rs[, as.numeric(diff(t), units = "mins"), by = imv_run_id]$V1
+if (length(gaps)) {
+  q <- quantile(gaps, c(.25, .5, .75, .9), names = FALSE)
+  chart_int <- data.table(level = c("p25", "median", "p75", "p90", "pct_gaps_over_60min", "pct_gaps_over_240min"),
+                          value = round(c(q, 100 * mean(gaps > 60), 100 * mean(gaps > 240)), 1))
+}
+rm(gaps)
+# Where T-piece / spontaneous trials are recorded: rows whose mode_name contains standard terms (counts only)
+term_pat <- c(t_piece = "t[-_ ]?piece", spont = "spont", cpap = "cpap", tube_compensation = "\\batc\\b|tube comp",
+              blow_by = "blow[-_ ]?by", pressure_support = "pressure support|\\bps\\b", missing_mode_name = NA)
+name_terms <- rbindlist(lapply(names(term_pat), function(k) {
+  hit <- if (is.na(term_pat[[k]])) is.na(rs$moden) else grepl(term_pat[[k]], rs$moden)
+  data.table(level = k, rows = sum(hit), runs = uniqueN(rs$imv_run_id[hit]))
+}))
+
+# Mode class: 1 control/other vent mode, 2 pressure support/CPAP, 3 T-piece, 4 off the ventilator, NA unknown
+rs[, mcode := fcase(grepl("t[-_ ]?piece", moden) | (blowby_is_tpiece & grepl("blow[-_ ]?by", modec)), 3L,
+                    grepl("pressure support|cpap", modec),                                    2L,
+                    !is.na(modec) | !is.na(moden),                                            1L,
+                    !is.na(device) & device != "imv",                                         4L,
+                    default = NA_integer_)]
+
+# Carry a numeric column forward within groups, for at most `hours`
+carry <- function(d, col, by, hours) {
+  d[, tt_ := as.numeric(t)]
+  d[, last_ := fifelse(is.na(get(col)), NA_real_, tt_)]
+  d[, c(col, "last_") := lapply(.SD, nafill, type = "locf"), by = by, .SDcols = c(col, "last_")]
+  d[!is.na(last_) & tt_ - last_ > hours * 3600, (col) := NA]
+  d[, c("tt_", "last_") := NULL]
+  invisible(d)
+}
+carry(rs, "mcode", "imv_run_id", settings_carry_h)
+rs[, seg := rleid(mcode), by = imv_run_id]                       # PS/PEEP only carried within the same mode
+carry(rs, "ps", c("imv_run_id", "seg"), settings_carry_h)
+carry(rs, "pe", c("imv_run_id", "seg"), settings_carry_h)
+
+rs[, sbt_row := fcoalesce(mcode == 3L | (mcode == 2L & ps <= flip_ps_max & pe <= flip_peep_max), FALSE)]
+
+# ---- V3. SBT episodes (uninterrupted runs of SBT-level rows) ---------------------------------------------
+rs[, ep := rleid(sbt_row), by = imv_run_id]
+eps <- rs[, .(sbt = sbt_row[1L], t_start = t[1L]), by = .(imv_run_id, ep)]
+eps[, t_stop := shift(t_start, -1L), by = imv_run_id]            # ends at the next non-SBT row ...
+eps[runs, on = "imv_run_id", t_stop := fcoalesce(t_stop, i.t_end)]   # ... or at the end of the run
+eps <- eps[sbt == TRUE][, sbt := NULL]
+eps[, dur_min := as.numeric(difftime(t_stop, t_start, units = "mins"))]
+
+# Step 2 (ventilator): first SBT-level row after readiness with >= flip_min of SBT settings remaining
+rr <- rs[sbt_row == TRUE, .(imv_run_id, t, ep)]
+rr[eps, on = .(imv_run_id, ep), `:=`(t_ep = i.t_start, t_stop = i.t_stop)]
+rr <- rr[as.numeric(difftime(t_stop, t, units = "mins")) >= flip_min]
+rr[, t_key := if (require_transition) t_ep else t]
+sbt_vent <- rr[first_ready, on = .(imv_run_id, t_key >= t_ready), nomatch = 0L,
+               .(imv_run_id, t = x.t)][, .(t_sbt_vent = min(t)), by = imv_run_id]
+
+# Step 3 (ventilator): first episode lasting >= pass_min; the pass is time-stamped at start + pass_min
+pass_vent <- eps[dur_min >= pass_min, .(t_pass_vent = min(t_start) + pass_min * 60), by = imv_run_id]
+TRUE
+}, error = function(e) {
+  vent_status <<- paste("error:", conditionMessage(e))
+  message("Ventilator SBT detection failed; continuing with flowsheet only. ", vent_status)
+  FALSE
+})
+if (!vent_ok) {                                      # restore empty placeholders (some may be half-built)
+  sbt_vent  <- data.table(imv_run_id = id_empty, t_sbt_vent = t0_empty)
+  pass_vent <- data.table(imv_run_id = id_empty, t_pass_vent = t0_empty)
+  eps       <- data.table(imv_run_id = id_empty, t_start = t0_empty, dur_min = numeric(0))
+  rs        <- data.table(imv_run_id = id_empty, modec = character(0), ps = numeric(0), pe = numeric(0), mcode = integer(0))
+  if (sbt_source != "flowsheet") { warning("sbt_source set to 'flowsheet' because ventilator detection failed"); sbt_source <- "flowsheet" }
+}
+
+# ---- V4. Attach and choose the source used by steps 2 and 3 ---------------------------------------------
+old <- intersect(c("t_sbt_doc", "t_sbt_vent", "t_pass_vent"), names(runs))
+if (length(old)) runs[, (old) := NULL]                            # safe re-run
+for (x in list(sbt_doc, sbt_vent, pass_vent))
+  runs[x, on = "imv_run_id", (names(x)[2]) := get(paste0("i.", names(x)[2]))]
+if (!"t_pass_doc" %in% names(runs)) runs[, t_pass_doc := t_pass] # Section 2's documented pass, kept
+runs[, t_sbt  := switch(sbt_source, flowsheet = t_sbt_doc, ventilator = t_sbt_vent,
+                        either = pmin(t_sbt_doc, t_sbt_vent, na.rm = TRUE))]
+runs[, t_pass := switch(sbt_source, flowsheet = t_pass_doc, ventilator = t_pass_vent,
+                        either = pmin(t_pass_doc, t_pass_vent, na.rm = TRUE))]
+cat("SBT source for steps 2-3:", sbt_source, "\n")
+print(runs[, .(runs = .N, ready = sum(!is.na(t_ready)),
+               sbt_doc = sum(!is.na(t_sbt_doc)), sbt_vent = sum(!is.na(t_sbt_vent)),
+               pass_doc = sum(!is.na(t_pass_doc)), pass_vent = sum(!is.na(t_pass_vent))), by = lang2])
+
+# ---- V5. Shareable audit files (aggregate counts only; cells 1-10 masked) --------------------------------
+mask_pos <- function(x) fifelse(x > 0 & x < min_cell, NA_integer_, as.integer(x))
+safe_pct <- function(k, n) {                       # no percentage if it could reveal a masked count
+  bad <- (k > 0 & k < min_cell) | ((n - k) > 0 & (n - k) < min_cell) | n < min_cell
+  fifelse(bad, NA_real_, round(100 * k / n, 1))
+}
+two_by_two <- function(d, label) {          # d has columns lang2, a (flowsheet), b (ventilator), dmin
+  cells <- function(x) x[, .(both = sum(a & b), doc_only = sum(a & !b), vent_only = sum(!a & b), neither = sum(!a & !b),
+                             med_min_vent_minus_doc = if (sum(a & b) >= min_cell) median(dmin[a & b]) else NA_real_)]
+  out <- rbind(cbind(lang2 = "all", cells(d)), d[, cells(.SD), by = lang2])
+  out[, `:=`(n = both + doc_only + vent_only + neither, comparison = label)]
+  # agreement statistics only when no cell needs masking (they could otherwise reveal a masked cell)
+  out[, ok := (both == 0 | both >= min_cell) & (doc_only == 0 | doc_only >= min_cell) &
+              (vent_only == 0 | vent_only >= min_cell) & (neither == 0 | neither >= min_cell)]
+  out[ok == TRUE, `:=`(sens_vs_doc = round(both / (both + doc_only), 3), spec_vs_doc = round(neither / (neither + vent_only), 3),
+                       ppv_vs_doc = round(both / (both + vent_only), 3),
+                       kappa = { po <- (both + neither) / n
+                                 pe <- ((both + doc_only) * (both + vent_only) + (neither + vent_only) * (neither + doc_only)) / n^2
+                                 round((po - pe) / (1 - pe), 3) })]
+  for (cc in c("both", "doc_only", "vent_only", "neither", "n")) set(out, j = cc, value = mask_pos(out[[cc]]))
+  out[, ok := NULL][]
+}
+
+# (a) Delivered SBT after readiness: flowsheet vs ventilator (runs that reached readiness)
+cmp2 <- runs[!is.na(t_ready), .(lang2, a = !is.na(t_sbt_doc), b = !is.na(t_sbt_vent),
+                                dmin = as.numeric(difftime(t_sbt_vent, t_sbt_doc, units = "mins")))]
+# (b) Completed / passed SBT at any time on IMV: flowsheet pass vs ventilator >= pass_min
+cmp3 <- runs[, .(lang2, a = !is.na(t_pass_doc), b = !is.na(t_pass_vent),
+                 dmin = as.numeric(difftime(t_pass_vent, t_pass_doc, units = "mins")))]
+conc <- rbind(two_by_two(cmp2, paste0("delivered after readiness (flip >= ", flip_min, " min)")),
+              two_by_two(cmp3, paste0("passed (vent episode >= ", pass_min, " min)")), fill = TRUE)
+conc[, site := institution]
+
+# (c) Documentation before extubation: share of extubations with each kind of SBT evidence in the prior window
+ext <- runs[end_reason == "extubation", .(imv_run_id, lang2, t_lo = t_extub - doc_window_h * 3600, t_hi = t_extub)]
+has <- function(src, tcol) unique(src[ext, on = c("imv_run_id", paste0(tcol, ">=t_lo"), paste0(tcol, "<=t_hi")),
+                                     nomatch = 0L, .(imv_run_id)])$imv_run_id
+ext[, `:=`(doc_sbt   = imv_run_id %in% has(pd, "t"),
+           doc_pass  = imv_run_id %in% has(pd[pass == TRUE], "t"),
+           vent_sbt  = imv_run_id %in% has(eps[dur_min >= flip_min], "t_start"),
+           vent_pass = imv_run_id %in% has(eps[dur_min >= pass_min], "t_start"))]
+doc_ext <- rbind(ext[, .(lang2 = "all", n = .N, doc_sbt = sum(doc_sbt), doc_pass = sum(doc_pass),
+                         vent_sbt = sum(vent_sbt), vent_pass = sum(vent_pass), any_evidence = sum(doc_sbt | vent_sbt))],
+                 ext[, .(n = .N, doc_sbt = sum(doc_sbt), doc_pass = sum(doc_pass), vent_sbt = sum(vent_sbt),
+                         vent_pass = sum(vent_pass), any_evidence = sum(doc_sbt | vent_sbt)), by = lang2])
+for (cc in c("doc_sbt", "doc_pass", "vent_sbt", "vent_pass", "any_evidence"))
+  set(doc_ext, j = paste0("pct_", cc), value = safe_pct(doc_ext[[cc]], doc_ext$n))
+for (cc in c("n", "doc_sbt", "doc_pass", "vent_sbt", "vent_pass", "any_evidence")) set(doc_ext, j = cc, value = mask_pos(doc_ext[[cc]]))
+doc_ext[, `:=`(window_h = doc_window_h, site = institution)]
+
+# (d) Ventilator data audit: mode categories charted during IMV runs, PS/PEEP completeness, episode durations
+mode_inv <- rs[, .(rows = .N, runs = uniqueN(imv_run_id),
+                   pct_ps_present   = round(100 * mean(!is.na(ps)), 1),
+                   pct_peep_present = round(100 * mean(!is.na(pe)), 1)),
+               by = .(mode_category = fcoalesce(modec, "<missing>"))][order(-rows)]
+mode_inv <- rbind(mode_inv,
+                  rs[mcode == 3L, .(mode_category = "<t-piece by mode_name or blow by>", rows = .N, runs = uniqueN(imv_run_id))],
+                  fill = TRUE)
+mode_inv[, `:=`(rows = mask_pos(rows), runs = mask_pos(runs))]
+mode_inv[is.na(runs), c("pct_ps_present", "pct_peep_present") := NA]
+dur_bins <- eps[, .(episodes = .N, runs = uniqueN(imv_run_id)),
+                by = .(duration = cut(dur_min, c(0, 2, 5, 15, 30, 60, 120, Inf), right = FALSE,
+                                      labels = c("<2 min", "2-5", "5-15", "15-30", "30-60", "60-120", ">=120 min")))][order(duration)]
+dur_bins[, `:=`(episodes = mask_pos(episodes), runs = mask_pos(runs))]
+name_terms[, `:=`(rows = mask_pos(rows), runs = mask_pos(runs))]
+vent_audit <- rbind(data.table(section = "status", level = vent_status),
+                    mode_inv[, .(section = "mode_inventory", level = mode_category, rows, runs, pct_ps_present, pct_peep_present)],
+                    dur_bins[, .(section = "sbt_episode_duration", level = as.character(duration), rows = episodes, runs)],
+                    chart_int[, .(section = "charting_interval_min", level, value)],
+                    name_terms[, .(section = "mode_name_terms", level, rows, runs)],
+                    fill = TRUE)[!is.na(level)][, site := institution]
+
+fwrite(conc,       file.path(project_data_dir, paste0("liberation_sbt_concordance_",          institution, ".csv")))
+fwrite(doc_ext,    file.path(project_data_dir, paste0("liberation_sbt_before_extubation_",    institution, ".csv")))
+fwrite(vent_audit, file.path(project_data_dir, paste0("liberation_sbt_ventilator_audit_",     institution, ".csv")))
+print(conc); print(doc_ext); print(vent_audit)
+
+# (e) Which source supplied each SBT / pass time actually used for steps 2-3
+src_of <- function(t_used, t_doc, t_vent) fcase(
+  is.na(t_used),                                              NA_character_,
+  !is.na(t_doc) & !is.na(t_vent) & t_doc == t_vent,           "both_same_time",
+  !is.na(t_doc) & t_used == t_doc,                            "flowsheet",
+  default =                                                   "ventilator")
+runs[, `:=`(sbt_from  = src_of(t_sbt,  t_sbt_doc,  t_sbt_vent),
+            pass_from = src_of(t_pass, t_pass_doc, t_pass_vent))]
+src_used <- rbind(
+  runs[!is.na(sbt_from),  .N, by = .(source = sbt_from,  lang2)][, event := "sbt_after_readiness"],
+  runs[!is.na(pass_from), .N, by = .(source = pass_from, lang2)][, event := "passed_sbt"])
+setcolorder(src_used, c("event", "source", "lang2", "N"))
+src_used[, `:=`(N = mask_pos(N), sbt_source = sbt_source, site = institution)]
+print(src_used)
+fwrite(src_used, file.path(project_data_dir, paste0("liberation_sbt_source_used_", sbt_source, "_", institution, ".csv")))
+
+rm(list = intersect(c("rs", "rr", "pd", "eps", "ext", "cmp2", "cmp3", "one"), ls())); invisible(gc())
+
+#################################################################################
+################################################################################
 
 #)3 Analysis frame for one step
 cov_src <- intersect(c("age_at_admission", "sex_category", "bmi", "elixhauser_score", "intubation_site",
@@ -3818,7 +4139,8 @@ make_step <- function(origin, event, label) { #create function for survival anal
 steps <- list(
   step1 = make_step("t_int",   "t_screen", "1. Intubation -> first SBT screen"),
   step2 = make_step("t_ready", "t_sbt",    "2. Readiness -> first SBT"),
-  step3 = make_step("t_pass",  "t_extub",  "3. Passed SBT -> extubation"))
+  step3a = make_step("t_sbt",  "t_extub",  "3A. First SBT -> extubation"),
+  step3b = make_step("t_pass", "t_extub",  "3B. Passed SBT -> extubation"))
 
 # Imputation audit: share of runs whose covariate was missing (and median-imputed) at each step's start
 imputation_audit <- rbindlist(lapply(steps, function(d) {
@@ -3971,15 +4293,60 @@ res <- lapply(steps, analyse_step)
 step_hr   <- rbindlist(lapply(res, `[[`, "hr"), fill = TRUE)
 step_desc <- rbindlist(lapply(res, `[[`, "desc"), fill = TRUE)
 step_abs  <- rbindlist(lapply(res, `[[`, "abs"),  fill = TRUE)
+
+# ---- 4b. Secondary outcomes: other exits from IMV after each step's starting point ---------------------------
+# Follow-up runs to the end of IMV (not to the step's event). Gives
+#   - cause-specific HRs for tracheostomy and death (primary covariates), appended to the HR file
+#   - probability of each state (still intubated / extubated / tracheostomy / death) at 7 and 14 days, by language
+state_times_h <- c(168, 336)
+exit_outcomes <- function(d) {
+  d <- copy(d)
+  d[, time := pmax(as.numeric(difftime(t_end, t0, units = "hours")), 1 / 60)]
+  prim <- c(usable(d, adj_primary), usable(d, unit_term))
+  hr <- rbindlist(lapply(c("tracheostomy", "death"), function(o) {
+    d[, event01 := as.integer(end_reason == o)]
+    fit_terms(d, paste0(o, " (cause-specific, to end of IMV)"), "lang2", prim)
+  }), fill = TRUE)
+  d[, st := factor(fifelse(end_reason %in% c("extubation", "tracheostomy", "death"), end_reason, "censored"),
+                   levels = c("censored", "extubation", "tracheostomy", "death"))]
+  states <- tryCatch({
+    aj <- survfit(Surv(time, st) ~ lang2, data = d)
+    s  <- summary(aj, times = state_times_h, extend = TRUE)
+    nm <- sub("^\\(s0\\)$", "still_intubated", aj$states)
+    out <- rbindlist(lapply(seq_along(nm), function(k)
+      data.table(lang2 = sub("lang2=", "", s$strata), day = s$time / 24, state = nm[k],
+                 prob = s$pstate[, k], se = s$std.err[, k])))
+    cnt <- d[, .(n_lang = .N), by = lang2][d[, .(n_ended_in_state = .N), by = .(lang2, state = as.character(st))],
+                                          on = "lang2"]
+    out <- cnt[out, on = .(lang2, state)]
+    out[state == "still_intubated", n_ended_in_state := NA_integer_]
+    out[, n_lang := d[, .N, by = lang2][out, on = "lang2", N]]
+    # non-English minus English difference (independent groups; patient clustering ignored, so SE is approximate)
+    w <- dcast(out, day + state ~ lang2, value.var = c("prob", "se"))
+    dif <- w[, .(lang2 = "difference_non_english_minus_english", day, state,
+                 prob = prob_non_english - prob_english, se = sqrt(se_non_english^2 + se_english^2))]
+    rbind(out, dif, fill = TRUE)
+  }, error = function(e) data.table(note = paste("error:", conditionMessage(e))))
+  list(hr = cbind(step = d$step[1], hr), states = cbind(step = d$step[1], states))
+}
+exits <- lapply(steps, exit_outcomes)
+step_hr     <- rbind(step_hr, rbindlist(lapply(exits, `[[`, "hr"), fill = TRUE), fill = TRUE)
+step_states <- rbindlist(lapply(exits, `[[`, "states"), fill = TRUE)
+print(step_states[day == 7 | is.na(day), .(step, lang2, day, state, prob = round(prob, 3))])
+
 step_hr[, `:=`(hr = exp(log_hr), ci_low = exp(log_hr - 1.96 * se_log_hr), ci_high = exp(log_hr + 1.96 * se_log_hr))]
 
 print(step_desc)
 print(step_hr[, .(step, model, term, hr = round(hr, 3), ci_low = round(ci_low, 3), ci_high = round(ci_high, 3), status)])
 
-# ---- 5. Shareable outputs for federation (aggregate only) --------------------------------------------------
+#)5 Shareable outputs for federation (aggregate only)
 stamp_meta <- data.table(site = institution, analysis_version = analysis_version, run_date = as.character(Sys.Date()),
                          start_year = start_year, fio2_max = fio2_max, peep_max = peep_max, nee_max = nee_max,
                          ready_hours = ready_hours, death_grace_h = death_grace_h, min_cell = min_cell)
+
+src_tag <- if (sbt_source == "flowsheet") "" else paste0("_", sbt_source)
+# then in each fwrite file name:  paste0("liberation_hr", src_tag, "_", institution, ".csv"), etc.
+stamp_meta[, `:=`(sbt_source = sbt_source, flip_min = flip_min, pass_min = pass_min)]
 
 hr_share <- copy(step_hr)[, site := institution]
 hr_share[, `:=`(n_obs = mask(n_obs), n_events = mask(n_events))]          # estimates kept; counts masked
@@ -3998,18 +4365,29 @@ flow_share <- rbind(flow_dt[, language := "all"], flow_lang, fill = TRUE)[, site
 flow_share[, `:=`(runs = mask(runs), patients = mask(patients))]
 print(flow_share)
 
-fwrite(hr_share,   file.path(project_data_dir, paste0("liberation_hr_",         institution, ".csv")))
-fwrite(desc_share, file.path(project_data_dir, paste0("liberation_descriptive_", institution, ".csv")))
-fwrite(flow_share, file.path(project_data_dir, paste0("liberation_flow_",       institution, ".csv")))
+fwrite(hr_share,   file.path(project_data_dir, paste0("liberation_hr",          src_tag, "_", institution, ".csv")))
+fwrite(desc_share, file.path(project_data_dir, paste0("liberation_descriptive", src_tag, "_", institution, ".csv")))
+fwrite(flow_share, file.path(project_data_dir, paste0("liberation_flow",        src_tag, "_", institution, ".csv")))
 abs_share <- copy(step_abs)[, site := institution]
 abs_share[, small_group := n_non_english < min_cell | events_non_english < min_cell]
 abs_share[, `:=`(n_english = mask(n_english), n_non_english = mask(n_non_english), events_non_english = mask(events_non_english))]
-fwrite(abs_share,  file.path(project_data_dir, paste0("liberation_absolute_",   institution, ".csv")))
-fwrite(stamp_meta, file.path(project_data_dir, paste0("liberation_metadata_",   institution, ".csv")))
+fwrite(abs_share,  file.path(project_data_dir, paste0("liberation_absolute",    src_tag, "_", institution, ".csv")))
+fwrite(stamp_meta, file.path(project_data_dir, paste0("liberation_metadata",    src_tag, "_", institution, ".csv")))
+
+# State probabilities: hide any group's estimates when that group, or the count ending in that state, is 1-10
+states_share <- copy(step_states)[, site := institution]
+if ("n_lang" %in% names(states_share)) {
+  states_share[, small := (n_lang > 0 & n_lang < min_cell) | (n_ended_in_state > 0 & n_ended_in_state < min_cell)]
+  states_share[, small := fcoalesce(small, FALSE)]
+  hide <- states_share[small == TRUE, .(step, day, state)]       # also hide the difference row built from them
+  states_share[hide, on = .(step, day, state), c("prob", "se") := NA_real_]
+  states_share[, `:=`(n_lang = mask_pos(n_lang), n_ended_in_state = mask_pos(n_ended_in_state), small = NULL)]
+}
+fwrite(states_share, file.path(project_data_dir, paste0("liberation_states", src_tag, "_", institution, ".csv")))
 
 ```
 
-#Table 1
+#PART TEN: Table 1
 ```{r}
 ################################################################################
 # FEDERATED TABLE 1
@@ -4198,19 +4576,15 @@ build_liberation_table1 <- function(steps, runs, epoch_table, site, out_dir, min
   res <- rbind(
     table1_site(make_t1(steps$step1$imv_run_id), "lgrp", cats[names(cats) %in% names(make_t1(integer()))],
                 intersect(conts, names(make_t1(integer()))), site = site, cohort = "all_imv_runs", min_cell = min_cell),
-    table1_site(make_t1(steps$step3$imv_run_id), "lgrp", cats[names(cats) %in% names(make_t1(integer()))],
+    table1_site(make_t1(steps$step3a$imv_run_id), "lgrp", cats[names(cats) %in% names(make_t1(integer()))],
+                intersect(conts, names(make_t1(integer()))), site = site, cohort = "first_sbt_runs", min_cell = min_cell),
+    table1_site(make_t1(steps$step3b$imv_run_id), "lgrp", cats[names(cats) %in% names(make_t1(integer()))],
                 intersect(conts, names(make_t1(integer()))), site = site, cohort = "passed_sbt_runs", min_cell = min_cell))
   fwrite(res, file.path(out_dir, paste0("liberation_table1_", site, ".csv")))
   invisible(res)
 }
 # At each site:   
 t1 <- build_liberation_table1(steps, runs, epoch_table, institution, project_data_dir)
-
-# At the center:  all <- rbindlist(lapply(list.files(dir, "^liberation_table1_", full.names = TRUE), fread))
-#                 all[, group := fifelse(group == "english", "english", group)]
-#                 p3 <- table1_pool(all[cohort == "passed_sbt_runs"], ref_group = "english")          # 3 groups
-#                 p2 <- table1_pool(copy(all[cohort == "passed_sbt_runs"])[group != "english", group := "non_english"],
-#                                   ref_group = "english")                                                # English vs non-English
 
 ```
    
