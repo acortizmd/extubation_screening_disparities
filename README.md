@@ -263,11 +263,7 @@ time_zone: "EST"   # Your site's local timezone
 
 > **Note:** 256GB of RAM is recommended for sites with larger databases; 128GB may be sufficient for smaller databases.
 
-### 3. Run `code/01_analysis.Rmd` in RStudio
-
-> **Note:** The full analysis, including the bootstrap for absolute differences, took about 1 hour at Penn (~50,000 IMV runs).
-
-### 4. Upload results to Box
+### 3. Upload results to Box
 
 Upload the contents of `FINAL_DATA_UPLOAD_ME` to the shared Box folder: [link]
 
