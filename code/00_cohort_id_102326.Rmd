@@ -4165,12 +4165,11 @@ print(imputation_share)
 fwrite(imputation_share, file.path(project_data_dir, paste0("liberation_imputation_", institution, ".csv")))
 
 #)4 Model specifications
-adj_primary <- c("year_f", "pspline(age_at_admission, df = 3)", "sex_category",
+adj_primary <- c("year_f", "ns(age_at_admission, 3)", "sex_category",
                  "elixhauser_score", "elixhauser_score_na", "intubation_site",
-                 "pspline(sofa_total, df = 3)", "sofa_total_na",
-                 "pspline(oxy_pf, df = 3)", "oxy_src",
+                 "ns(sofa_total, 3)", "sofa_total_na", "ns(oxy_pf, 3)", "oxy_src",
                  "fio2", "fio2_na", "peep", "peep_na", "nee", "nee_na", "rass", "rass_na",
-                 "pspline(hours_on_imv, df = 3)") #primary covariates included, using smooth curve for age, SOFA, oxygenation, hours on IMV
+                 "ns(hours_on_imv, 3)") #primary covariates included, using smooth curve for age, SOFA, oxygenation, hours on IMV
 unit_term <- "strata(unit_id)" #create strata so that each hospitalxicu combo has its own baseline extubation rate
 var_of <- function(t) all.vars(as.formula(paste("~", t))) #function that returns the variables names
 usable <- function(d, terms) Filter(function(t) all(var_of(t) %in% names(d)) && uniqueN(d[[var_of(t)[1]]]) > 1, terms) #keep only terms that can be estimated in the step's data
