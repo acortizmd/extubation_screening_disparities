@@ -163,7 +163,7 @@ if (use_epoch_cache) {
 tic()
 ```
 
-
+ 
 #PART ZERO: Fix Hospitalization
 ```{r}
 # This block adjusts for hospitalizations that are continuous within a health system.
@@ -4140,7 +4140,8 @@ steps <- list(
   step1 = make_step("t_int",   "t_screen", "1. Intubation -> first SBT screen"),
   step2 = make_step("t_ready", "t_sbt",    "2. Readiness -> first SBT"),
   step3a = make_step("t_sbt",  "t_extub",  "3A. First SBT -> extubation"),
-  step3b = make_step("t_pass", "t_extub",  "3B. Passed SBT -> extubation"))
+  step3b = make_step("t_pass", "t_extub",  "3B. Passed SBT -> extubation"),
+  stepR = make_step("t_ready", "t_extub", "R. Readiness -> extubation"))
 
 # Imputation audit: share of runs whose covariate was missing (and median-imputed) at each step's start
 imputation_audit <- rbindlist(lapply(steps, function(d) {
