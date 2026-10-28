@@ -250,7 +250,7 @@ data_dir: ""       # Path to CLIF tables — must end with "/"
 local_dir: ""      # Path to project directory — must end with "/"
 file_type: ".parquet"
 institution: "YourInstitution"
-time_zone: "EST"   # Your site's local timezone
+time_zone: "America/New_York"   # Your site's local timezone
 ```
 
 - `data_dir`: Path to your CLIF 2.1 parquet (or CSV) tables
