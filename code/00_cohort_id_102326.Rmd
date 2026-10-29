@@ -451,8 +451,8 @@ sbt_summary[, institution := institution]
 print(sbt_summary)
 print(fmt[binary_value %in% NA])        # values that could not be mapped: review these
 
-fwrite(sbt_summary, file.path(audit_dir, paste0("sbt_assessment_summary_", institution, "_", stamp, institution, ".csv")))
-fwrite(fmt,         file.path(audit_dir, paste0("sbt_assessment_formats_", institution, "_", stamp, institution, ".csv")))
+fwrite(sbt_summary, file.path(audit_dir, paste0("sbt_assessment_summary_", institution, "_", stamp, ".csv")))
+fwrite(fmt,         file.path(audit_dir, paste0("sbt_assessment_formats_", institution, "_", stamp, ".csv")))
 
 #3) Put the harmonized values back; one row per hospitalization, time and item
 sbt <- unique(sbt[, .(hospitalization_id, recorded_dttm, assessment_category, numerical_value, categorical_value,
@@ -547,10 +547,10 @@ print(med_expected[order(med_group, status, med_category)])
 print(med_unexpected)
 print(med_group_labels)
 
-fwrite(med_detail,       file.path(audit_dir, paste0("med_continuous_detail_",     institution, "_", stamp, institution, ".csv")))
-fwrite(med_expected,     file.path(audit_dir, paste0("med_continuous_expected_",   institution, "_", stamp, institution, ".csv")))
-fwrite(med_unexpected,   file.path(audit_dir, paste0("med_continuous_unexpected_", institution, "_", stamp, institution, ".csv")))
-fwrite(med_group_labels, file.path(audit_dir, paste0("med_continuous_group_labels_", institution, "_", stamp, institution, ".csv")))
+fwrite(med_detail,       file.path(audit_dir, paste0("med_continuous_detail_",     institution, "_", stamp, ".csv")))
+fwrite(med_expected,     file.path(audit_dir, paste0("med_continuous_expected_",   institution, "_", stamp, ".csv")))
+fwrite(med_unexpected,   file.path(audit_dir, paste0("med_continuous_unexpected_", institution, "_", stamp, ".csv")))
+fwrite(med_group_labels, file.path(audit_dir, paste0("med_continuous_group_labels_", institution, "_", stamp, ".csv")))
 
 
 #Intermittent Meds
@@ -669,13 +669,13 @@ print(im_expected[order(med_group, status, med_category)])
 print(im_steroid_units)
 print(im_group_labels)
 
-fwrite(im_detail,        file.path(audit_dir, paste0("med_intermittent_detail_",       institution, "_", stamp, institution, ".csv")))
-fwrite(im_expected,      file.path(audit_dir, paste0("med_intermittent_expected_",     institution, "_", stamp, institution, ".csv")))
-fwrite(im_abx_tracked, file.path(audit_dir, paste0("med_intermittent_abx_tracked_", institution, "_", stamp, institution, ".csv")))
-fwrite(im_abx_other,   file.path(audit_dir, paste0("med_intermittent_abx_other_",   institution, "_", stamp, institution, ".csv")))
-fwrite(im_abx_summary, file.path(audit_dir, paste0("med_intermittent_abx_summary_", institution, "_", stamp, institution, ".csv")))
-fwrite(im_steroid_units, file.path(audit_dir, paste0("med_intermittent_steroid_units_", institution, "_", stamp, institution, ".csv")))
-fwrite(im_group_labels,  file.path(audit_dir, paste0("med_intermittent_group_labels_", institution, "_", stamp, institution, ".csv")))
+fwrite(im_detail,        file.path(audit_dir, paste0("med_intermittent_detail_",       institution, "_", stamp, ".csv")))
+fwrite(im_expected,      file.path(audit_dir, paste0("med_intermittent_expected_",     institution, "_", stamp, ".csv")))
+fwrite(im_abx_tracked, file.path(audit_dir, paste0("med_intermittent_abx_tracked_", institution, "_", stamp, ".csv")))
+fwrite(im_abx_other,   file.path(audit_dir, paste0("med_intermittent_abx_other_",   institution, "_", stamp, ".csv")))
+fwrite(im_abx_summary, file.path(audit_dir, paste0("med_intermittent_abx_summary_", institution, "_", stamp, ".csv")))
+fwrite(im_steroid_units, file.path(audit_dir, paste0("med_intermittent_steroid_units_", institution, "_", stamp, ".csv")))
+fwrite(im_group_labels,  file.path(audit_dir, paste0("med_intermittent_group_labels_", institution, "_", stamp, ".csv")))
 rm(im, abx, found_im)
 
 #Position
@@ -767,11 +767,11 @@ print(viral_results)
 print(viral_pairs)
 print(head(viral_other, 20))
 
-fwrite(viral_summary, file.path(audit_dir, paste0("micro_nonculture_summary_", institution, "_", stamp, institution, ".csv")))
-fwrite(target_stats,  file.path(audit_dir, paste0("micro_nonculture_targets_", institution, "_", stamp, institution, ".csv")))
-fwrite(viral_results, file.path(audit_dir, paste0("micro_nonculture_results_", institution, "_", stamp, institution, ".csv")))
-fwrite(viral_pairs,   file.path(audit_dir, paste0("micro_nonculture_pairs_",   institution, "_", stamp, institution, ".csv")))
-fwrite(viral_other,   file.path(audit_dir, paste0("micro_nonculture_other_",   institution, "_", stamp, institution, ".csv")))
+fwrite(viral_summary, file.path(audit_dir, paste0("micro_nonculture_summary_", institution, "_", stamp, ".csv")))
+fwrite(target_stats,  file.path(audit_dir, paste0("micro_nonculture_targets_", institution, "_", stamp, ".csv")))
+fwrite(viral_results, file.path(audit_dir, paste0("micro_nonculture_results_", institution, "_", stamp, ".csv")))
+fwrite(viral_pairs,   file.path(audit_dir, paste0("micro_nonculture_pairs_",   institution, "_", stamp, ".csv")))
+fwrite(viral_other,   file.path(audit_dir, paste0("micro_nonculture_other_",   institution, "_", stamp, ".csv")))
 ```
 
 #PART TWO: Identify Trach Times, IMV runs, and adjusted end_imv for trach, death, discharge
