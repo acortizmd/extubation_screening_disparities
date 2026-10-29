@@ -4244,7 +4244,7 @@ analyse_step <- function(d) {
   per  <- add_period_terms(d)
   per  <- per[sapply(per, function(p) sum(d[[p]]) > 0)]
   race_terms <- usable(d, c("race4", "eth3"))
-  bmi_terms  <- usable(d, c("pspline(bmi, df = 3)", "bmi_na"))
+  bmi_terms  <- usable(d, c("ns(bmi, 3)", "bmi_na"))
 
   hr <- rbind(
     fit_terms(d, "unadjusted",                        "lang2", character(0)),
@@ -4259,10 +4259,9 @@ analyse_step <- function(d) {
     fit_terms(d, "Fine-Gray (primary covariates)",    "lang2", prim, fine_gray = TRUE),
     fill = TRUE)
 
-  # PH test for language in the primary model (ns() splines; cox.zph can fail with pspline)
-  adj_ns <- sub("^pspline\\(([^,]+), df = 3\\)$", "ns(\\1, 3)", adj)
+  # PH test for language in the primary model
   hr[model == "primary", ph_p_language := tryCatch(
-    cox.zph(coxph(as.formula(paste("Surv(time, event01) ~", paste(c("lang2", adj_ns, unit), collapse = " + "))),
+    cox.zph(coxph(as.formula(paste("Surv(time, event01) ~", paste(c("lang2", adj, unit), collapse = " + "))),
                   data = d, cluster = patient_id))$table["lang2", "p"], error = function(e) NA_real_)]
 
   # Absolute measures by language: cumulative incidence at ci_at_h (with SE) and restricted mean time waiting
