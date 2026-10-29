@@ -102,8 +102,8 @@ for (dir in dirs_to_create) {
 }
 
 # ---- Cache settings -------------------------------------------------------------------------------
-force_rebuild       <- FALSE   # TRUE = rebuild everything (baseline + epoch table)
-force_rebuild_epoch <- FALSE   # TRUE = keep the baseline cache, rebuild Parts 5-8 only
+force_rebuild       <- TRUE   # TRUE = rebuild everything (baseline + epoch table)
+force_rebuild_epoch <- TRUE   # TRUE = keep the baseline cache, rebuild Parts 5-8 only
 
 baseline_cache <- file.path(intermediate_dir, "baseline_data_eligible_imv_runs.parquet")
 baseline_meta  <- file.path(intermediate_dir, "baseline_data_eligible_imv_runs_meta.rds")
@@ -451,8 +451,8 @@ sbt_summary[, institution := institution]
 print(sbt_summary)
 print(fmt[binary_value %in% NA])        # values that could not be mapped: review these
 
-fwrite(sbt_summary, file.path(audit_dir, paste0("sbt_assessment_summary_", institution, "_", stamp, ".csv")))
-fwrite(fmt,         file.path(audit_dir, paste0("sbt_assessment_formats_", institution, "_", stamp, ".csv")))
+fwrite(sbt_summary, file.path(audit_dir, paste0("sbt_assessment_summary_", institution, "_", stamp, institution, ".csv")))
+fwrite(fmt,         file.path(audit_dir, paste0("sbt_assessment_formats_", institution, "_", stamp, institution, ".csv")))
 
 #3) Put the harmonized values back; one row per hospitalization, time and item
 sbt <- unique(sbt[, .(hospitalization_id, recorded_dttm, assessment_category, numerical_value, categorical_value,
@@ -547,10 +547,10 @@ print(med_expected[order(med_group, status, med_category)])
 print(med_unexpected)
 print(med_group_labels)
 
-fwrite(med_detail,       file.path(audit_dir, paste0("med_continuous_detail_",     institution, "_", stamp, ".csv")))
-fwrite(med_expected,     file.path(audit_dir, paste0("med_continuous_expected_",   institution, "_", stamp, ".csv")))
-fwrite(med_unexpected,   file.path(audit_dir, paste0("med_continuous_unexpected_", institution, "_", stamp, ".csv")))
-fwrite(med_group_labels, file.path(audit_dir, paste0("med_continuous_group_labels_", institution, "_", stamp, ".csv")))
+fwrite(med_detail,       file.path(audit_dir, paste0("med_continuous_detail_",     institution, "_", stamp, institution, ".csv")))
+fwrite(med_expected,     file.path(audit_dir, paste0("med_continuous_expected_",   institution, "_", stamp, institution, ".csv")))
+fwrite(med_unexpected,   file.path(audit_dir, paste0("med_continuous_unexpected_", institution, "_", stamp, institution, ".csv")))
+fwrite(med_group_labels, file.path(audit_dir, paste0("med_continuous_group_labels_", institution, "_", stamp, institution, ".csv")))
 
 
 #Intermittent Meds
@@ -669,13 +669,13 @@ print(im_expected[order(med_group, status, med_category)])
 print(im_steroid_units)
 print(im_group_labels)
 
-fwrite(im_detail,        file.path(audit_dir, paste0("med_intermittent_detail_",       institution, "_", stamp, ".csv")))
-fwrite(im_expected,      file.path(audit_dir, paste0("med_intermittent_expected_",     institution, "_", stamp, ".csv")))
-fwrite(im_abx_tracked, file.path(audit_dir, paste0("med_intermittent_abx_tracked_", institution, "_", stamp, ".csv")))
-fwrite(im_abx_other,   file.path(audit_dir, paste0("med_intermittent_abx_other_",   institution, "_", stamp, ".csv")))
-fwrite(im_abx_summary, file.path(audit_dir, paste0("med_intermittent_abx_summary_", institution, "_", stamp, ".csv")))
-fwrite(im_steroid_units, file.path(audit_dir, paste0("med_intermittent_steroid_units_", institution, "_", stamp, ".csv")))
-fwrite(im_group_labels,  file.path(audit_dir, paste0("med_intermittent_group_labels_", institution, "_", stamp, ".csv")))
+fwrite(im_detail,        file.path(audit_dir, paste0("med_intermittent_detail_",       institution, "_", stamp, institution, ".csv")))
+fwrite(im_expected,      file.path(audit_dir, paste0("med_intermittent_expected_",     institution, "_", stamp, institution, ".csv")))
+fwrite(im_abx_tracked, file.path(audit_dir, paste0("med_intermittent_abx_tracked_", institution, "_", stamp, institution, ".csv")))
+fwrite(im_abx_other,   file.path(audit_dir, paste0("med_intermittent_abx_other_",   institution, "_", stamp, institution, ".csv")))
+fwrite(im_abx_summary, file.path(audit_dir, paste0("med_intermittent_abx_summary_", institution, "_", stamp, institution, ".csv")))
+fwrite(im_steroid_units, file.path(audit_dir, paste0("med_intermittent_steroid_units_", institution, "_", stamp, institution, ".csv")))
+fwrite(im_group_labels,  file.path(audit_dir, paste0("med_intermittent_group_labels_", institution, "_", stamp, institution, ".csv")))
 rm(im, abx, found_im)
 
 #Position
@@ -767,11 +767,11 @@ print(viral_results)
 print(viral_pairs)
 print(head(viral_other, 20))
 
-fwrite(viral_summary, file.path(audit_dir, paste0("micro_nonculture_summary_", institution, "_", stamp, ".csv")))
-fwrite(target_stats,  file.path(audit_dir, paste0("micro_nonculture_targets_", institution, "_", stamp, ".csv")))
-fwrite(viral_results, file.path(audit_dir, paste0("micro_nonculture_results_", institution, "_", stamp, ".csv")))
-fwrite(viral_pairs,   file.path(audit_dir, paste0("micro_nonculture_pairs_",   institution, "_", stamp, ".csv")))
-fwrite(viral_other,   file.path(audit_dir, paste0("micro_nonculture_other_",   institution, "_", stamp, ".csv")))
+fwrite(viral_summary, file.path(audit_dir, paste0("micro_nonculture_summary_", institution, "_", stamp, institution, ".csv")))
+fwrite(target_stats,  file.path(audit_dir, paste0("micro_nonculture_targets_", institution, "_", stamp, institution, ".csv")))
+fwrite(viral_results, file.path(audit_dir, paste0("micro_nonculture_results_", institution, "_", stamp, institution, ".csv")))
+fwrite(viral_pairs,   file.path(audit_dir, paste0("micro_nonculture_pairs_",   institution, "_", stamp, institution, ".csv")))
+fwrite(viral_other,   file.path(audit_dir, paste0("micro_nonculture_other_",   institution, "_", stamp, institution, ".csv")))
 ```
 
 #PART TWO: Identify Trach Times, IMV runs, and adjusted end_imv for trach, death, discharge
@@ -979,7 +979,7 @@ log_trach("5b excl. trach diagnosis without time-stamped documentation", imv_run
 trach_flow <- rbindlist(trach_flow)
 trach_flow[, runs_removed := shift(runs) - runs]
 print(trach_flow)
-fwrite(trach_flow, file.path(audit_dir, paste0("trach_exclusion_flow_", stamp, ".csv")))
+fwrite(trach_flow, file.path(audit_dir, paste0("trach_exclusion_flow_", stamp, institution, ".csv")))
 
 #Trach audit data
 ever_imv_ids <- unique(resp_imv$hospitalization_id)
@@ -998,11 +998,11 @@ trach_audit <- enc_trach[, .(all_encounters      = .N,
                          by = trach_evidence][order(trach_evidence)]
 print(trach_audit)
 
-fwrite(trach_audit, file.path(audit_dir, paste0("trach_evidence_audit_", stamp, ".csv")))
+fwrite(trach_audit, file.path(audit_dir, paste0("trach_evidence_audit_", stamp, institution, ".csv")))
 
 #Optional, local only: the encounter IDs for the artifact group, for site-based  spot checks
 fwrite(enc_trach[trach_evidence == "single record, no code (artifact, not a trach)", .(hospitalization_id)],
-       file.path(intermediate_dir, paste0("trach_single_record_ids_", stamp, ".csv")))
+       file.path(intermediate_dir, paste0("trach_single_record_ids_", stamp, institution, ".csv")))
 
 ################################################################################
 
@@ -1227,7 +1227,7 @@ cohort_flow[, runs_removed := shift(runs) - runs]
 print(cohort_flow)
 
 #Save it
-fwrite(cohort_flow, file.path(project_data_dir, paste0("cohort_flow_", stamp, ".csv")))
+fwrite(cohort_flow, file.path(project_data_dir, paste0("cohort_flow_", stamp, institution, ".csv")))
 fwrite(cohort_flow, file.path(intermediate_dir, "cohort_flow.csv"))   # stable name, readable on cached runs
 }
 ```
@@ -1604,10 +1604,10 @@ height_adjustments_detail <- hosp_height[!is.na(height_adjustment),
     hosp_height_cm_before = hosp_height_cm_orig, hosp_height_cm_after = hosp_height_cm)]
 
 # HEIGHT: keep summary + unit-class counts in audit_dir; row-level files go local
-fwrite(height_audit_summary,      file.path(audit_dir,        paste0("height_audit_summary_",      stamp, ".csv")))
-fwrite(audit_unit_class,          file.path(audit_dir,        paste0("height_audit_unit_class_",   stamp, ".csv")))
-fwrite(audit_patient,             file.path(intermediate_dir, paste0("height_audit_patient_",      stamp, ".csv")))
-fwrite(height_adjustments_detail, file.path(intermediate_dir, paste0("height_adjustments_detail_", stamp, ".csv")))
+fwrite(height_audit_summary,      file.path(audit_dir,        paste0("height_audit_summary_",      stamp, institution, ".csv")))
+fwrite(audit_unit_class,          file.path(audit_dir,        paste0("height_audit_unit_class_",   stamp, institution, ".csv")))
+fwrite(audit_patient,             file.path(intermediate_dir, paste0("height_audit_patient_",      stamp, institution, ".csv")))
+fwrite(height_adjustments_detail, file.path(intermediate_dir, paste0("height_adjustments_detail_", stamp, institution, ".csv")))
 
 baseline_data_eligible_imv_runs[, .N, by = .(sex_category, height_status)][order(sex_category, height_status)]
 
@@ -1906,11 +1906,11 @@ weight_adjustments_detail <- wt_clean[interp != "as_recorded",
   .(patient_id, cohort_hospitalization_id, source_hospitalization_id, recorded_dttm,
     weight_raw = wt_raw, interp, weight_kg_after = kg_cand, anchor_kg)]
 
-fwrite(weight_audit_summary,      file.path(audit_dir,        paste0("weight_audit_summary_",      stamp, ".csv")))
-fwrite(weight_audit_interp,       file.path(audit_dir,        paste0("weight_audit_interp_",       stamp, ".csv")))
-fwrite(weight_audit_raw_buckets,  file.path(audit_dir,        paste0("weight_audit_raw_buckets_",  stamp, ".csv")))
-fwrite(audit_weight,              file.path(intermediate_dir, paste0("weight_audit_cohort_hosp_",  stamp, ".csv")))
-fwrite(weight_adjustments_detail, file.path(intermediate_dir, paste0("weight_adjustments_detail_", stamp, ".csv")))
+fwrite(weight_audit_summary,      file.path(audit_dir,        paste0("weight_audit_summary_",      stamp, institution, ".csv")))
+fwrite(weight_audit_interp,       file.path(audit_dir,        paste0("weight_audit_interp_",       stamp, institution, ".csv")))
+fwrite(weight_audit_raw_buckets,  file.path(audit_dir,        paste0("weight_audit_raw_buckets_",  stamp, institution, ".csv")))
+fwrite(audit_weight,              file.path(intermediate_dir, paste0("weight_audit_cohort_hosp_",  stamp, institution, ".csv")))
+fwrite(weight_adjustments_detail, file.path(intermediate_dir, paste0("weight_adjustments_detail_", stamp, institution, ".csv")))
 
 print(baseline_data_eligible_imv_runs[, .N, by = .(sex_category, weight_status)][order(sex_category, weight_status)])
 
@@ -2231,11 +2231,11 @@ elix_nodx_by_year <- merge(res_all$audit[, .(hospitalization_id, index_has_dx)],
 elix_nodx_by_year
 
 #8) Save audit files
-fwrite(elix_audit_summary, file.path(audit_dir, paste0("elix_audit_summary_",      stamp, ".csv")))
-fwrite(elix_prevalence,    file.path(audit_dir, paste0("elix_audit_prevalence_",   stamp, ".csv")))
-fwrite(elix_nodx_by_year,  file.path(audit_dir, paste0("elix_audit_nodx_by_year_", stamp, ".csv")))
-fwrite(res_poa$audit,      file.path(intermediate_dir, paste0("elix_audit_cohort_hosp_poa_", stamp, ".csv")))
-fwrite(res_all$audit,      file.path(intermediate_dir, paste0("elix_audit_cohort_hosp_all_", stamp, ".csv")))
+fwrite(elix_audit_summary, file.path(audit_dir, paste0("elix_audit_summary_",      stamp, institution, ".csv")))
+fwrite(elix_prevalence,    file.path(audit_dir, paste0("elix_audit_prevalence_",   stamp, institution, ".csv")))
+fwrite(elix_nodx_by_year,  file.path(audit_dir, paste0("elix_audit_nodx_by_year_", stamp, institution, ".csv")))
+fwrite(res_poa$audit,      file.path(intermediate_dir, paste0("elix_audit_cohort_hosp_poa_", stamp, institution, ".csv")))
+fwrite(res_all$audit,      file.path(intermediate_dir, paste0("elix_audit_cohort_hosp_all_", stamp, institution, ".csv")))
 
 print(baseline_data_eligible_imv_runs[, .N, by = .(elixhauser_dx_source_poa, elixhauser_imputed_poa)])
 
@@ -2434,9 +2434,9 @@ baseline_data_eligible_imv_runs[arrived_intubated_likely == TRUE,
 adt[tolower(location_category) == "procedural", .N, by = location_type][order(-N)]
 
 dir.create(audit_dir, showWarnings = FALSE, recursive = TRUE)
-fwrite(loc_audit_summary,      file.path(audit_dir, paste0("location_audit_summary_",    stamp, ".csv")))
-fwrite(loc_adjustment_crosstab, file.path(audit_dir, paste0("location_audit_adjustment_", stamp, ".csv")))
-fwrite(loc_by_hospital,        file.path(audit_dir, paste0("location_audit_by_hospital_", stamp, ".csv")))
+fwrite(loc_audit_summary,      file.path(audit_dir, paste0("location_audit_summary_",    stamp, institution, ".csv")))
+fwrite(loc_adjustment_crosstab, file.path(audit_dir, paste0("location_audit_adjustment_", stamp, institution, ".csv")))
+fwrite(loc_by_hospital,        file.path(audit_dir, paste0("location_audit_by_hospital_", stamp, institution, ".csv")))
 
 baseline_data_eligible_imv_runs[, .N, by = .(location_match_type, location_confidence, intubation_site)][
   order(location_match_type, -N)]
@@ -2555,8 +2555,8 @@ print(audit_med_dose_dist)
 
 meds[, c("med_key", "conv_factor", "conv_kg", "convertible", "unit_std", "wt_kg") := NULL] #drop unneeded columns
   # save files
-fwrite(audit_med_conversion, file.path(audit_dir, paste0("med_unit_conversion_", stamp, ".csv")))
-fwrite(audit_med_dose_dist,  file.path(audit_dir, paste0("med_dose_std_distribution_", stamp, ".csv")))
+fwrite(audit_med_conversion, file.path(audit_dir, paste0("med_unit_conversion_", stamp, institution, ".csv")))
+fwrite(audit_med_dose_dist,  file.path(audit_dir, paste0("med_dose_std_distribution_", stamp, institution, ".csv")))
 
 }
 ```
@@ -2908,8 +2908,8 @@ print(audit_med_units)
 c(runs = uniqueN(epoch_table$imv_run_id), epochs = nrow(epoch_table),
   imv_epochs = nrow(post), cols = ncol(epoch_table))
 
-fwrite(audit_features,  file.path(audit_dir, paste0("epoch_audit_features_",  stamp, ".csv")))
-fwrite(audit_med_units, file.path(audit_dir, paste0("epoch_audit_med_units_", stamp, ".csv")))
+fwrite(audit_features,  file.path(audit_dir, paste0("epoch_audit_features_",  stamp, institution, ".csv")))
+fwrite(audit_med_units, file.path(audit_dir, paste0("epoch_audit_med_units_", stamp, institution, ".csv")))
 }
 ```
 
@@ -3041,7 +3041,7 @@ audit_abx <- merge(audit_abx,
 print(audit_abx)
 print(epoch_table[epoch >= 0, .N, by = abx_n_active][order(abx_n_active)])
  # save the abx audit files
-fwrite(audit_abx, file.path(audit_dir, paste0("abx_coverage_audit_", stamp, ".csv")))
+fwrite(audit_abx, file.path(audit_dir, paste0("abx_coverage_audit_", stamp, institution, ".csv")))
 
 ################################################################################
 # SYSTEMIC CORTICOSTEROIDS: per-drug active flags + hydrocortisone-equivalent dose per epoch
@@ -3175,9 +3175,9 @@ c(dropped_unconvertible_units = n_ster_bad_unit,
  # Hydrocortisone-equivalent dose among hours on steroids (mg/day)
 round(quantile(st_post[steroid_hc_eq_mg_day > 0, steroid_hc_eq_mg_day], c(.1, .25, .5, .75, .9, .99)), 1)
  # save the files
-fwrite(audit_ster,   file.path(audit_dir, paste0("steroid_audit_",       stamp, ".csv")))
-fwrite(st_unit_tbl,  file.path(audit_dir, paste0("steroid_units_",       stamp, ".csv")))
-fwrite(st_route_tbl, file.path(audit_dir, paste0("steroid_routes_",      stamp, ".csv")))
+fwrite(audit_ster,   file.path(audit_dir, paste0("steroid_audit_",       stamp, institution, ".csv")))
+fwrite(st_unit_tbl,  file.path(audit_dir, paste0("steroid_units_",       stamp, institution, ".csv")))
+fwrite(st_route_tbl, file.path(audit_dir, paste0("steroid_routes_",      stamp, institution, ".csv")))
 
 
 ################################################################################
@@ -3333,9 +3333,9 @@ c(viral_rows = n_viral_rows, rows_without_patient_id = n_unmapped)
 # Flags must be 0/1 only
 sapply(viral_epoch_cols, function(cc) paste(sort(unique(epoch_table[[cc]])), collapse = ",")) #verify everything is 0 or 1
  # write the audit tables
-fwrite(audit_viral,        file.path(audit_dir, paste0("viral_audit_",         stamp, ".csv")))
-fwrite(viral_organism_map, file.path(audit_dir, paste0("viral_organism_map_",  stamp, ".csv")))
-fwrite(viral_result_map,   file.path(audit_dir, paste0("viral_result_map_",    stamp, ".csv")))
+fwrite(audit_viral,        file.path(audit_dir, paste0("viral_audit_",         stamp, institution, ".csv")))
+fwrite(viral_organism_map, file.path(audit_dir, paste0("viral_organism_map_",  stamp, institution, ".csv")))
+fwrite(viral_result_map,   file.path(audit_dir, paste0("viral_result_map_",    stamp, institution, ".csv")))
 
 ################################################################################
 # LOCATION + HOSPITAL PER EPOCH (ADT)
@@ -3435,8 +3435,8 @@ loc_chk <- merge(epoch_table[epoch == 0, .(imv_run_id, epoch_location_category)]
                  baseline_data_eligible_imv_runs[, .(imv_run_id, location_of_intubation)], by = "imv_run_id")
 print(loc_chk[, .N, by = .(location_of_intubation, epoch_location_category)][order(-N)][1:15])
  # save the audit files
-fwrite(loc_epoch_dist,  file.path(audit_dir, paste0("epoch_location_distribution_", stamp, ".csv")))
-fwrite(hosp_epoch_dist, file.path(audit_dir, paste0("epoch_hospital_distribution_", stamp, ".csv")))
+fwrite(loc_epoch_dist,  file.path(audit_dir, paste0("epoch_location_distribution_", stamp, institution, ".csv")))
+fwrite(hosp_epoch_dist, file.path(audit_dir, paste0("epoch_hospital_distribution_", stamp, institution, ".csv")))
 }
 ```
      
@@ -3640,7 +3640,7 @@ print(dpost[, .(pct_low_tidal_volume = round(100 * mean(low_tidal_volume == 1L, 
           pct_pv_iv            = round(100 * mean(pulm_vasodilator_iv), 2))])
 print(dpost[epoch == 0, .N, by = .(language_category, lang_cat_simplified)][order(-N)][1:15])   # language mapping
  #save audit
-fwrite(derived_summary, file.path(audit_dir, paste0("derived_features_summary_", stamp, ".csv")))
+fwrite(derived_summary, file.path(audit_dir, paste0("derived_features_summary_", stamp, institution, ".csv")))
 
 
 #) 9 Column inventory
@@ -3657,7 +3657,7 @@ col_inventory <- rbindlist(lapply(names(epoch_table), function(cc) {
 }))
 print(col_inventory, nrows = Inf)
 
-fwrite(col_inventory, file.path(audit_dir, paste0("epoch_table_columns_", stamp, ".csv")))
+fwrite(col_inventory, file.path(audit_dir, paste0("epoch_table_columns_", stamp, institution, ".csv")))
 
 # ---- Save the epoch table cache (Parts 5-8 output) -------------------------------------------------
 if (!use_epoch_cache) {
