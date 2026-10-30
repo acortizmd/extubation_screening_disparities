@@ -7,3 +7,6 @@ config/extubation_screening_config.yaml
 output/
 cohort_output/
 final_federated_output/
+code/federate_extubation_disparities.R
+code/make_ats_abstract_figure.R
+code/table1_federated.R
