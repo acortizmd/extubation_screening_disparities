@@ -4165,15 +4165,31 @@ print(imputation_share)
 fwrite(imputation_share, file.path(project_data_dir, paste0("liberation_imputation_", institution, ".csv")))
 
 #)4 Model specifications
-adj_primary <- c("year_f", "ns(age_at_admission, 3)", "sex_category",
+# nsx(): identical to splines::ns(x, df) whenever ns() works. When many tied values push the default
+# quantile knots onto the boundary (e.g. most runs reach readiness at the same hour), it places the knots
+# at quantiles of the values strictly inside the range instead, and falls back to a linear term if needed.
+nsx <- function(x, df = 3) {
+  p   <- seq_len(df - 1) / df
+  rng <- range(x, na.rm = TRUE)
+  kn  <- quantile(x, p, na.rm = TRUE, names = FALSE)
+  if (all(kn > rng[1] & kn < rng[2]) && !anyDuplicated(kn)) return(splines::ns(x, df = df))
+  inner <- x[!is.na(x) & x > rng[1] & x < rng[2]]
+  kn <- unique(quantile(inner, p, names = FALSE))
+  if (!length(inner) || !length(kn)) return(matrix(x, ncol = 1, dimnames = list(NULL, "linear")))
+  splines::ns(x, knots = kn, Boundary.knots = rng)
+}
+ # Primary covariates
+adj_primary <- c("year_f", "nsx(age_at_admission, 3)", "sex_category",
                  "elixhauser_score", "elixhauser_score_na", "intubation_site",
-                 "ns(sofa_total, 3)", "sofa_total_na", "ns(oxy_pf, 3)", "oxy_src",
+                 "nsx(sofa_total, 3)", "sofa_total_na",
+                 "nsx(oxy_pf, 3)", "oxy_src",
                  "fio2", "fio2_na", "peep", "peep_na", "nee", "nee_na", "rass", "rass_na",
-                 "ns(hours_on_imv, 3)") #primary covariates included, using smooth curve for age, SOFA, oxygenation, hours on IMV
+                 "nsx(hours_on_imv, 3)") #primary covariates included, using smooth curve for age, SOFA, oxygenation, hours on IMV
 unit_term <- "strata(unit_id)" #create strata so that each hospitalxicu combo has its own baseline extubation rate
 var_of <- function(t) all.vars(as.formula(paste("~", t))) #function that returns the variables names
 usable <- function(d, terms) Filter(function(t) all(var_of(t) %in% names(d)) && uniqueN(d[[var_of(t)[1]]]) > 1, terms) #keep only terms that can be estimated in the step's data
 mask   <- function(x) fifelse(x < min_cell, NA_integer_, as.integer(x)) #mask function again
+mask_pos <- function(x) fifelse(x > 0 & x < min_cell, NA_integer_, as.integer(x))   # keeps true zeros
 
 # Fit one model; return the exposure coefficient(s) on the log scale with robust SE, or a logged failure
   # clustering at patient_id
@@ -4244,7 +4260,7 @@ analyse_step <- function(d) {
   per  <- add_period_terms(d)
   per  <- per[sapply(per, function(p) sum(d[[p]]) > 0)]
   race_terms <- usable(d, c("race4", "eth3"))
-  bmi_terms  <- usable(d, c("ns(bmi, 3)", "bmi_na"))
+  bmi_terms  <- usable(d, c("nsx(bmi, 3)", "bmi_na"))
 
   hr <- rbind(
     fit_terms(d, "unadjusted",                        "lang2", character(0)),

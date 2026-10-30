@@ -5,3 +5,5 @@ config/extubation_screening_config.yaml
 .Rproj.user/
 *.html
 output/
+cohort_output/
+final_federated_output/
